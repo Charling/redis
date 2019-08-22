@@ -5,12 +5,16 @@ import (
 	"time"
 )
 
-var (
+type IoRedis struct {
 	conn *redis.Pool
+}
+
+var (
+	Pool *IoRedis
 )
 
-func RedisPool(host string) *redis.Pool {
-	conn = &redis.Pool{
+func (io *IoRedis) RedisPool(host string) *redis.Pool {
+	io.conn = &redis.Pool{
         //最大空闲
         MaxIdle: 100,
         //最大活动量
@@ -30,9 +34,9 @@ func RedisPool(host string) *redis.Pool {
         },
 	}
 	
-	return conn
+	return io.conn
 }
 
-func Get() *redis.Pool {
-	return conn
+func (io *IoRedis) Get() *redis.Pool {
+	return io.conn
 }
