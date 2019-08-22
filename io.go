@@ -13,8 +13,8 @@ var (
 	Pool *IoRedis
 )
 
-func (io *IoRedis) RedisPool(host string) *redis.Pool {
-	io.conn = &redis.Pool{
+func RedisPool(host string) *redis.Pool {
+	conn := &redis.Pool{
         //最大空闲
         MaxIdle: 100,
         //最大活动量
@@ -34,9 +34,10 @@ func (io *IoRedis) RedisPool(host string) *redis.Pool {
         },
 	}
 	
-	return io.conn
+	return conn
 }
 
 func (io *IoRedis) Get() *redis.Pool {
 	return io.conn
 }
+
