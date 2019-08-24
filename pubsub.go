@@ -5,6 +5,9 @@ import (
 	"time"
 	LOGGER "yn.com/ext/common/logger"
 	"yn.com/ext/common/gomsg"
+	Proto "yn.com/ext/common/proto"
+	"github.com/golang/protobuf/proto"
+	"fmt"
 )
 
 type PubSubEvent func(channel string, bytes []byte)
@@ -29,11 +32,24 @@ func Sub(url string, channles[]string, e PubSubEvent) {
 	go subPublisherEvents(channles)
 }
 
-func Publish(channel string, data []byte) error {
+func Publish(channel string, id int64, ops int32, data []byte) error {
 	conn := pubsub.pool.Get()
 	defer conn.Close()
+	
+	msg := &Proto.Message {
+		PlayerId: proto.Int64(id),
+		Ops: proto.Int32(ops),
+		Data: data,
+	}
 
-	_, err := conn.Do("PUBLISH", channel, data)
+	res, err := proto.Marshal(msg)
+	if err != nil {
+		e := fmt.Sprintf("Mashal data error %v", err)
+		LOGGER.Error(e)
+		return err
+	}
+
+	_, err = conn.Do("PUBLISH", channel, res)
 	if err != nil {
         LOGGER.Error("Publish err(%v).", err)
 		return err
