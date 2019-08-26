@@ -59,7 +59,7 @@ func Publish(channel string, id int64, ops int32, data []byte) error {
 
 func register(channelList []string) {
 	for _, c := range channelList{
-		LOGGER.Error("registerChannel(%s).", c)
+		LOGGER.Info("registerChannel(%s).", c)
 		psc := redis.PubSubConn{pubsub.pool.Get()}
 		err := psc.Subscribe(c)
 		if err != nil {
