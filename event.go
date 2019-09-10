@@ -7,15 +7,19 @@ import (
 )
 
 var (
+    url string
+	pwd string
 	pool *redis.Pool
 )
 
-func Startup(url,pwd string) {
-	pool = redisPool(url,pwd)
+func Startup(u,p string) {
+	pool = redisPool(u,p)
 	if pool == nil {	
 		LOGGER.Error("pool == nil, init failed");
 		return
-	}
+    }
+    url = u
+    pwd = p
 }
 
 func SetValue(key string, value string) bool{
