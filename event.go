@@ -3,7 +3,7 @@ package redis
 import (
 	"github.com/gomodule/redigo/redis"
 	LOGGER "github.yn.com/ext/common/logger"
-	"fmt"
+//	"fmt"
 )
 
 var (
