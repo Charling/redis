@@ -10,15 +10,13 @@ var (
 	pool *redis.Pool
 )
 
-func Startup(url string) {
-	pool = redisPool(url)
-
+func Startup(url,pwd string) {
+	pool = redisPool(url,pwd)
 	if pool == nil {	
 		LOGGER.Error("pool == nil, init failed");
 		return
 	}
 }
-
 
 func SetValue(key string, value string) bool{
     c := pool.Get()

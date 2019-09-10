@@ -15,6 +15,7 @@ type MsgHandler func(int64, []byte, int32)
 type stPubsubRedis struct {
 	handler map[int32]MsgHandler
 	url string
+	pwd string
 	pool *redis.Pool
 }
 
@@ -22,8 +23,8 @@ var (
 	pubsub stPubsubRedis
 )
 
-func Sub(url string, channles[]string, msg *map[int32]MsgHandler) {
-	pubsub.pool = redisPool(url)
+func Sub(url,pwd string, channles[]string, msg *map[int32]MsgHandler) {
+	pubsub.pool = redisPool(url,pwd)
 	pubsub.url = url
 	pubsub.handler = *msg
 
@@ -103,7 +104,7 @@ func subPublisherEvents(channles []string) {
 			<-time.After(5 * time.Second)
 
 			pubsub.pool.Get().Close()
-			Sub(pubsub.url, channles, &pubsub.handler)
+			Sub(pubsub.url, pubsub.pwd, channles, &pubsub.handler)
 			quit = true
 		}
 
