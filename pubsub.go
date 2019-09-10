@@ -3,9 +3,9 @@ package redis
 import (
 	"github.com/gomodule/redigo/redis"
 	"time"
-	LOGGER "yn.com/ext/common/logger"
-	"yn.com/ext/common/gomsg"
-	Proto "yn.com/ext/common/proto"
+	LOGGER "github.yn.com/ext/common/logger"
+	"github.yn.com/ext/common/gomsg"
+	Proto "github.yn.com/ext/common/proto"
 	"github.com/golang/protobuf/proto"
 	"fmt"
 )
