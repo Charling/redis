@@ -22,6 +22,14 @@ func Startup(u,p string) {
     pwd = p
 }
 
+func IoRedis() *redis.Conn {
+    c := pool.Get()
+    if c == nil{
+        return nil
+    }
+    return &c
+}
+
 func SetValue(key string, value string) bool{
     c := pool.Get()
     if c == nil{

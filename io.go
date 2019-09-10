@@ -19,9 +19,11 @@ func redisPool(host,pwd string) *redis.Pool {
             if err != nil {
                 return nil, err
             }
-            //验证redis密码
-            if _, authErr := c.Do("AUTH", pwd); authErr != nil {
-                return nil, fmt.Errorf("redis auth password error: %s", authErr)
+            if pwd != "" {
+                //验证redis密码
+                if _, authErr := c.Do("AUTH", pwd); authErr != nil {
+                    return nil, fmt.Errorf("redis auth password error: %s", authErr)
+                }
             }
             return c, err
         },

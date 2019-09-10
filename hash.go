@@ -89,16 +89,33 @@ func Hgetall(key string) []interface{} {
     return value
 }
 
-//HSET key [field value] [field value] ...：将哈希表 key 中的字段 field 的值设为 value 。 
+//HSET key field value:将哈希表 key 中的字段 field 的值设为 value 。
+func Hset(key, field string, value interface{}) bool {
+    c := pool.Get()
+    if c == nil{
+		return false
+    }
+    defer c.Close()
+
+    _, err := redis.Bool(c.Do("HSET", key, field, value))
+    if err != nil {
+        LOGGER.Error("redis HSET failed key:%s  err:%+v \n", key, err)
+        return false
+    }
+
+    return true
+}
+
+//HMSET key [field value] [field value] ...：将哈希表 key 中的字段 field 的值设为 value 。 
 //example:HMSET runoobkey name "redis tutorial" description "redis basic commands for caching" likes 20 visitors 23000
-func Hset(key string, values []interface{}) bool {
+func Hmset(key string, object interface{}) bool {
 	c := pool.Get()
     if c == nil{
 		return false
     }
     defer c.Close()
 
-    _, err := redis.Bool(c.Do("HSET", key, values))
+    _, err := redis.String(c.Do("HMSET", redis.Args{key}.AddFlat(object)...))
     if err != nil {
         LOGGER.Error("redis Hset failed key:%s  err:%+v \n", key, err)
         return false
