@@ -6,6 +6,22 @@ import (
 //	"fmt"
 )
 
+//key值是否存储
+func Exists(key string) bool {
+    c := pool.Get()
+    if c == nil{
+        return false
+    }
+    defer c.Close()
+
+    exit, err := redis.Bool(c.Do("EXISTS", key))
+    if err != nil {
+        LOGGER.Error("EXISTS error: %v.", err)
+        return false
+    } 
+    return exit
+}
+
 //删除整个表
 func Del(key string) bool {
 	c := pool.Get()
@@ -18,9 +34,8 @@ func Del(key string) bool {
     if err != nil {
         LOGGER.Error("Del error: %v.", err)
         return false
-    } else {
-        return exit
-    }
+    } 
+    return exit
 }
 
 //HDEL key field1 [field2]:删除一个或多个哈希表字段
