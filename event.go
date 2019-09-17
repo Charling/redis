@@ -6,24 +6,33 @@ import (
 //	"fmt"
 )
 
+type RedisClient struct {
+	pool *redis.Pool
+}
+
 var (
     url string
 	pwd string
-	pool *redis.Pool
+	redisClient *RedisClient
 )
 
 func Startup(u,p string) {
-	pool = redisPool(u,p)
-	if pool == nil {	
-		LOGGER.Error("pool == nil, init failed");
+	redisClient = redisPool(u,p)
+	if redisClient == nil {	
+		LOGGER.Error("redisClient == nil, init failed");
 		return
     }
     url = u
     pwd = p
 }
 
+func (r *RedisClient) Close() error {
+	err := r.pool.Close()
+	return err
+}
+
 func IoRedis() *redis.Conn {
-    c := pool.Get()
+    c := redisClient.pool.Get()
     if c == nil{
         return nil
     }
@@ -31,7 +40,7 @@ func IoRedis() *redis.Conn {
 }
 
 func SetValue(key string, value string) bool{
-    c := pool.Get()
+    c := redisClient.pool.Get()
     if c == nil{
         return false
     }
@@ -46,7 +55,7 @@ func SetValue(key string, value string) bool{
 }
 
 func GetValue(key string) string{
-    c := pool.Get()
+    c := redisClient.pool.Get()
     if c == nil{
         return ""
     }
@@ -62,7 +71,7 @@ func GetValue(key string) string{
 }
 
 func IsExitKey(key string) bool {
-    c := pool.Get()
+    c := redisClient.pool.Get()
     if c == nil{
         return false
     }

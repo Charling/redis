@@ -14,18 +14,22 @@ type MsgHandler func(int64, []byte, int32)
 
 var (
 	handler map[int32]MsgHandler
+	channles[]string
 )
 
-func Sub(url,pwd string, channles[]string, msg *map[int32]MsgHandler) {
+func Subscribe(url,pwd string, chans[]string, msg *map[int32]MsgHandler) {
 	handler = *msg
+	channles = chans
 
-	register(channles)
+	subPublisherEvents()
+}
 
-	go subPublisherEvents(channles)
+func reSubscribe() {
+	subPublisherEvents()
 }
 
 func Publish(channel string, id int64, ops int32, data []byte) error {
-	conn := pool.Get()
+	conn := redisClient.pool.Get()
 	defer conn.Close()
 	
 	msg := &Proto.Message {
@@ -34,14 +38,14 @@ func Publish(channel string, id int64, ops int32, data []byte) error {
 		Data: data,
 	}
 
-	res, err := proto.Marshal(msg)
+	message, err := proto.Marshal(msg)
 	if err != nil {
 		e := fmt.Sprintf("Mashal data error %v", err)
 		LOGGER.Error(e)
 		return err
 	}
 
-	_, err = conn.Do("PUBLISH", channel, res)
+	_, err = conn.Do("PUBLISH", channel, message)
 	if err != nil {
         LOGGER.Error("Publish err(%v).", err)
 		return err
@@ -49,19 +53,7 @@ func Publish(channel string, id int64, ops int32, data []byte) error {
 	return nil
 }
 
-func register(channelList []string) {
-	for _, c := range channelList{
-		LOGGER.Info("registerChannel(%s).", c)
-		psc := redis.PubSubConn{pool.Get()}
-		err := psc.Subscribe(c)
-		if err != nil {
-			LOGGER.Error(err.Error())
-			continue
-		}
-	}
-}
-
-func channelIsOk(channles []string, channel string) bool {
+func channelIsOk(channel string) bool {
 	arrlen := len(channles)
 	for i:=0;i<arrlen;i++ {
 		if channles[i] == channel {
@@ -71,37 +63,59 @@ func channelIsOk(channles []string, channel string) bool {
 	return false
 }
 
-func subPublisherEvents(channles []string) {
+func subPublisherEvents() {
 	defer gomsg.Recover()
-	psc := redis.PubSubConn{pool.Get()}
+	psc := redis.PubSubConn{Conn: redisClient.pool.Get()}
 
-	quit := false
-	for {
-		switch v := psc.Receive().(type) {
-		case redis.Message:
-			if channelIsOk(channles, v.Channel) == true {
-				msg := &Proto.Message{}
-				err := proto.Unmarshal(v.Data, msg)
-				if err == nil {
-					handler := handler[*msg.Ops]
-					if handler != nil {
-						handler(*msg.PlayerId, msg.Data, *msg.Size)
-					}
-				}
-			}
-
-		case error:
-			LOGGER.Error("redis subPublisherEvents channel exited, try to restart. (%v)", v)
-			<-time.After(5 * time.Second)
-
-			pool.Get().Close()
-			Sub(url, pwd, channles, &handler)
-			quit = true
-		}
-
-		if quit {
-			break
+	arrlen := len(channles)
+	for i:=0;i<arrlen;i++ {	
+		err := psc.Subscribe(channles[i])
+		if err != nil{
+			LOGGER.Error("redis Subscribe %s error.", channles[i])
+			return
 		}
 	}
+	done := make(chan string, 1)
+
+	go func() {
+		defer psc.Close()
+		for {
+			switch v := psc.Receive().(type) {
+			case redis.Message:
+				if channelIsOk(v.Channel) == true {
+					msg := &Proto.Message{}
+					err := proto.Unmarshal(v.Data, msg)
+					if err == nil {
+						handler := handler[*msg.Ops]
+						if handler != nil {
+							handler(*msg.PlayerId, msg.Data, *msg.Size)
+						}
+					}  else {
+						LOGGER.Error(fmt.Sprintf("redis subPublisherEvents error: %v.", err))
+					}
+				}
+
+			case error:
+				done <- fmt.Sprintf("redis subPublisherEvents channel exited, try to restart. (%v)", v)
+				return
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case err := <- done:
+				LOGGER.Error(err)
+
+				<-time.After(60 * time.Second)
+				redisClient.pool.Get().Close()
+				LOGGER.Info("try connect redis ....")
+				Startup(url, pwd)
+				reSubscribe()
+				return
+			}
+		}
+	}()
 }
 

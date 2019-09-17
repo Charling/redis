@@ -6,9 +6,41 @@ import (
 //	"fmt"
 )
 
+//key值缓存时间
+func Expire(key string, cacheTime int32) bool {
+    c := redisClient.pool.Get()
+    if c == nil{
+        return false
+    }
+    defer c.Close()
+
+    exit, err := redis.Bool(c.Do("EXPIRE", key, cacheTime))
+    if err != nil {
+        LOGGER.Error("EXPIRE error: %v.", err)
+        return false
+    } 
+    return exit
+}
+
+//key值永不过期
+func Persist(key string) bool {
+    c := redisClient.pool.Get()
+    if c == nil{
+        return false
+    }
+    defer c.Close()
+
+    exit, err := redis.Bool(c.Do("PERSIST", key))
+    if err != nil {
+        LOGGER.Error("PERSIST error: %v.", err)
+        return false
+    } 
+    return exit
+} 
+
 //key值是否存储
 func Exists(key string) bool {
-    c := pool.Get()
+    c := redisClient.pool.Get()
     if c == nil{
         return false
     }
@@ -24,7 +56,7 @@ func Exists(key string) bool {
 
 //删除整个表
 func Del(key string) bool {
-	c := pool.Get()
+	c := redisClient.pool.Get()
     if c == nil{
         return false
     }
@@ -40,7 +72,7 @@ func Del(key string) bool {
 
 //HDEL key field1 [field2]:删除一个或多个哈希表字段
 func Hdel(key string) bool {
-    c := pool.Get()
+    c := redisClient.pool.Get()
     if c == nil{
         return false
     }
@@ -56,7 +88,7 @@ func Hdel(key string) bool {
 
 //HEXISTS key field:查看哈希表 key 中，指定的字段是否存在。
 func Hexists(key,field string) bool {
-	c := pool.Get()
+	c := redisClient.pool.Get()
     if c == nil{
         return false
     }
@@ -72,7 +104,7 @@ func Hexists(key,field string) bool {
 
 //HGET key field:获取存储在哈希表中指定字段的值。
 func Hget(key,field string) string {
-	c := pool.Get()
+	c := redisClient.pool.Get()
     if c == nil{
         return ""
     }
@@ -89,7 +121,7 @@ func Hget(key,field string) string {
 
 //HGETALL key:获取在哈希表中指定 key 的所有字段和值
 func Hgetall(key string) []interface{} {
-	c := pool.Get()
+	c := redisClient.pool.Get()
     if c == nil{
 		return nil
     }
@@ -106,7 +138,7 @@ func Hgetall(key string) []interface{} {
 
 //HSET key field value:将哈希表 key 中的字段 field 的值设为 value 。
 func Hset(key, field string, value interface{}) bool {
-    c := pool.Get()
+    c := redisClient.pool.Get()
     if c == nil{
 		return false
     }
@@ -124,7 +156,7 @@ func Hset(key, field string, value interface{}) bool {
 //HMSET key [field value] [field value] ...：将哈希表 key 中的字段 field 的值设为 value 。 
 //example:HMSET runoobkey name "redis tutorial" description "redis basic commands for caching" likes 20 visitors 23000
 func Hmset(key string, object interface{}) bool {
-	c := pool.Get()
+	c := redisClient.pool.Get()
     if c == nil{
 		return false
     }

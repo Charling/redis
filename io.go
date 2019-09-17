@@ -6,7 +6,7 @@ import (
     "fmt"
 )
 
-func redisPool(host,pwd string) *redis.Pool {
+func redisPool(host,pwd string) *RedisClient {
 	pool := &redis.Pool{
         //最大空闲
         MaxIdle: 100,
@@ -33,5 +33,8 @@ func redisPool(host,pwd string) *redis.Pool {
         },
 	}
 	
-	return pool
+	client := &RedisClient{
+		pool: pool,
+	}
+	return client
 }
