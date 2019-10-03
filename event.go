@@ -63,8 +63,24 @@ func GetValue(key string) string{
 
     value, err := redis.String(c.Do("GET", key))
     if err != nil {
-        LOGGER.Error("redis set failed key:%s  err:%+v \n", key, err)
+        LOGGER.Info("redis get failed key:%s  err:%+v \n", key, err)
         return ""
+    }
+
+    return value
+}
+
+func GetBytes(key string) []byte {
+    c := redisClient.pool.Get()
+    if c == nil{
+        return nil
+    }
+    defer c.Close()
+
+    value, err := redis.Bytes(c.Do("GET", key))
+    if err != nil {
+        LOGGER.Info("redis get failed key:%s  err:%+v \n", key, err)
+        return nil
     }
 
     return value
