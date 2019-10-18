@@ -4,7 +4,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"time"
 	LOGGER "github.yn.com/ext/common/logger"
-	"github.yn.com/ext/common/gomsg"
+	//"github.yn.com/ext/common/gomsg"
 	Proto "github.yn.com/ext/common/proto"
 	"github.com/golang/protobuf/proto"
 	"fmt"
@@ -113,7 +113,7 @@ func channelIsOk(channel string) bool {
 }
 
 func subPublisherEvents() {
-	defer gomsg.Recover()
+	defer LOGGER.Recover()
 	psc := redis.PubSubConn{Conn: redisClient.pool.Get()}
 
 	arrlen := len(channles)
