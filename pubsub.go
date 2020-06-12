@@ -16,6 +16,7 @@ type MsgHandler func(int64, []byte, int32)
 type stPubsubRedis struct {
 	url string
 	pwd string
+	client *RedisClient
 	handler PubSubEvent
 }
 
@@ -29,7 +30,15 @@ var (
 func Subscribe(url,pwd string, chans[]string, msg *map[int32]MsgHandler) {
 	pubsub.url = url
 	pubsub.pwd = pwd
+	pubsub.client = redisPool(url,pwd)
+	if pubsub.client == nil {	
+		LOGGER.Error("pubsub.client == nil, init failed");
+		return
+    }
 	handers = *msg
+	if done == nil {
+		done = make(chan string)
+	}
 
 	pubsub.handler = func(channel string, bytes []byte) {
 		arrlen := len(channles)
@@ -55,6 +64,11 @@ func Subscribe(url,pwd string, chans[]string, msg *map[int32]MsgHandler) {
 		}
 	}
 	channles = chans
+	arrlen := len(channles)
+	LOGGER.Info("Subscribe arrlen:%d", arrlen)
+	for i:=0;i<arrlen;i++ {
+		LOGGER.Info("channles idx:%d,%s", i,channles[i])
+	}
 
 	go subPublisherEvents()
 	go reSubscribe()
@@ -65,19 +79,20 @@ func reSubscribe() {
 		select {
 		case err := <- done:
 			LOGGER.Error(err)
+			<-time.After(10 * time.Second)
 
-			<-time.After(60 * time.Second)
-			redisClient.pool.Get().Close()
+			pubsub.client.pool.Get().Close()
+
 			LOGGER.Info("try connect redis ....")
-			Startup(pubsub.url, pubsub.pwd)
-			go subPublisherEvents()
+			Subscribe(pubsub.url,pubsub.pwd, channles, &handers)
 			return
+			
 		}
 	}
 }
 
 func Publish(channel string, id int64, ops int32, data []byte) error {
-	conn := redisClient.pool.Get()
+	conn := pubsub.client.pool.Get()
 	defer conn.Close()
 
 	msg := &Proto.Message {
@@ -114,13 +129,13 @@ func channelIsOk(channel string) bool {
 
 func subPublisherEvents() {
 	defer LOGGER.Recover()
-	psc := redis.PubSubConn{Conn: redisClient.pool.Get()}
+	psc := redis.PubSubConn{Conn: pubsub.client.pool.Get()}
 
 	arrlen := len(channles)
 	for i:=0;i<arrlen;i++ {	
 		err := psc.Subscribe(channles[i])
 		if err != nil{
-			LOGGER.Error("redis Subscribe %s error.", channles[i])
+			done <- fmt.Sprintf("redis Subscribe %s error=%v.", channles[i], err)
 			return
 		}
 	}
